@@ -1,0 +1,53 @@
+#
+# Makefile.in -- one file to make them all
+#
+# Copyright (c) 2024, NLnet Labs. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+CC = @CC@
+CPPFLAGS = @CPPFLAGS@ -I$(SRCDIR)/include -I$(SRCDIR)/src -I.
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+DEPFLAGS = @DEPFLAGS@
+VPATH = @srcdir@
+
+SRCDIR = @srcdir@
+LIBOBJDIR = compat/
+
+SRCS = b64.c
+OBJS = $(SRCS:.c=.o)
+LIBS = @LIBS@
+LIBOBJS = @LIBOBJS@
+DEPS = $(OBJS:.o=.d) $(LIBOBJS:.o=.d)
+
+# override $U variable which is used by autotools for deansification (for
+# K&R C compilers), but causes problems if $U is defined in the env).
+U=
+
+.PHONY: all clean
+
+all: b64
+
+clean:
+	@rm -f .depend
+	@rm -f b64 $(OBJS) $(LIBOBJS)
+
+b64: $(OBJS) # $(LIBOBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(LIBOBJS) $(LIBS)
+
+$(OBJS): .depend
+	$(CC) $(DEPFLAGS) $(CPPFLAGS) $(CFLAGS) -o $@ -c $(SRCDIR)/$(@:.o=.c)
+	@touch $@
+
+$(LIBOBJS): .depend
+	$(CC) $(DEPFLAGS) $(CPPFLAGS) $(CFLAGS) -o $@ -c $(SRCDIR)/$(@:.o=.c)
+	@touch $@
+
+.depend:
+	@cat /dev/null > $@
+	@for x in $(DEPS:.d=); do echo "$${x}.o: $(SRCDIR)/$${x}.c $${x}.d" >> $@; done
+
+-include .depend
+$(DEPS):
+-include $(DEPS)
